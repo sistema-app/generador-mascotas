@@ -318,6 +318,90 @@
             gap: 5px;
         }
 
+        .pet-stats {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-label {
+            width: 110px;
+            flex-shrink: 0;
+            font-weight: 800;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .stat-bar-container {
+            flex: 1;
+            height: 18px;
+            background: rgba(0,0,0,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .stat-value {
+            width: 32px;
+            flex-shrink: 0;
+            text-align: right;
+            font-weight: 800;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .stat-total-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 4px;
+            padding: 14px 18px;
+            border-radius: 18px;
+            background: linear-gradient(90deg, #FFE66D, #FFB86C);
+            box-shadow: 0 6px 15px rgba(255, 184, 92, 0.4);
+        }
+
+        .stat-total-label {
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-total-value {
+            font-weight: 900;
+            font-size: 1.3rem;
+            color: var(--text-dark);
+        }
+
+        .tier-badge {
+            font-size: 0.85rem;
+            font-weight: 800;
+            background: rgba(255,255,255,0.6);
+            padding: 4px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
         .pet-story {
             font-size: 1.2rem;
             line-height: 1.6;
@@ -382,6 +466,7 @@
                 <div class="pet-card">
                     <h2 class="pet-name" id="resName">Nombre</h2>
                     <div class="pet-badges" id="resBadges"></div>
+                    <div class="pet-stats" id="resStats"></div>
                     <div class="pet-story" id="resStory"></div>
                     
                     <div class="action-buttons">
@@ -563,6 +648,7 @@
             }());
 
             setTimeout(() => {
+                resolveSurprise();
                 generateResultData();
                 showView('result'); 
                 
@@ -576,17 +662,139 @@
             }, 3000);
         }
 
+        // Resuelve 'sorpresa' UNA sola vez a un animal real, para que la mascota 3D,
+        // el cuento, las insignias y las estadísticas coincidan entre sí.
+        function resolveSurprise() {
+            if (userChoices.animal?.val === 'surprise') {
+                const animalQuestion = questions.find(q => q.id === 'animal');
+                const realOptions = animalQuestion.options.filter(o => o.val !== 'surprise');
+                userChoices.animal = realOptions[Math.floor(Math.random() * realOptions.length)];
+            }
+        }
+
+        // Estadísticas base por tipo de animal (0-100)
+        const ANIMAL_STATS = {
+            dog:     { vida: 70, poder: 55, velocidad: 65, magia: 40 },
+            cat:     { vida: 60, poder: 50, velocidad: 75, magia: 50 },
+            rabbit:  { vida: 55, poder: 35, velocidad: 90, magia: 45 },
+            panda:   { vida: 85, poder: 60, velocidad: 35, magia: 40 },
+            fox:     { vida: 60, poder: 55, velocidad: 80, magia: 60 },
+            dragon:  { vida: 80, poder: 95, velocidad: 55, magia: 85 },
+            unicorn: { vida: 70, poder: 50, velocidad: 70, magia: 100 },
+            robot:   { vida: 75, poder: 80, velocidad: 50, magia: 30 }
+        };
+
+        // Bonos según el resto de las decisiones del niño
+        const SIZE_MODS = {
+            small: { velocidad: 15, poder: -10 },
+            medium: {},
+            giant: { poder: 20, vida: 15, velocidad: -15 }
+        };
+        const SUPERPOWER_MODS = {
+            volar: { velocidad: 15, magia: 10 },
+            fuego: { poder: 20 },
+            hielo: { poder: 10, magia: 10 },
+            velocidad: { velocidad: 20 },
+            animales: { magia: 15, vida: 5 },
+            arcoiris: { magia: 20 },
+            invisibilidad: { magia: 15, velocidad: 5 }
+        };
+        const PERSONALITY_MODS = {
+            amigable: { vida: 10 },
+            traviesa: { velocidad: 10 },
+            valiente: { poder: 15 },
+            inteligente: { magia: 10 },
+            divertida: { velocidad: 5, vida: 5 },
+            cariñosa: { vida: 15 }
+        };
+        const ACCESSORY_MODS = {
+            crown: { poder: 10 },
+            hat: { magia: 5 },
+            cape: { velocidad: 10 },
+            glasses: { magia: 10 },
+            bow: { vida: 5 },
+            none: {}
+        };
+
+        function applyMods(stats, mods) {
+            if (!mods) return;
+            for (const key in mods) stats[key] = (stats[key] || 0) + mods[key];
+        }
+
+        function computeStats() {
+            const animalVal = userChoices.animal?.val || 'dog';
+            const stats = { ...(ANIMAL_STATS[animalVal] || ANIMAL_STATS.dog) };
+
+            applyMods(stats, SIZE_MODS[userChoices.size?.val]);
+            applyMods(stats, SUPERPOWER_MODS[userChoices.superpower?.val]);
+            applyMods(stats, PERSONALITY_MODS[userChoices.personality?.val]);
+            applyMods(stats, ACCESSORY_MODS[userChoices.accessory?.val]);
+
+            // Se limitan entre 5 y 100 para que ninguna barra quede vacía o desbordada
+            for (const key in stats) stats[key] = Math.max(5, Math.min(100, Math.round(stats[key])));
+            return stats;
+        }
+
+        function computeTier(avg) {
+            if (avg >= 85) return { label: 'Legendario', emoji: '🌟' };
+            if (avg >= 70) return { label: 'Épico', emoji: '💎' };
+            if (avg >= 55) return { label: 'Raro', emoji: '🔥' };
+            if (avg >= 40) return { label: 'Común', emoji: '🍀' };
+            return { label: 'Novato', emoji: '🌱' };
+        }
+
+        function renderStats() {
+            const stats = computeStats();
+            const statDefs = [
+                { key: 'vida', label: 'Vida', emoji: '❤️', color: '#FF6B6B' },
+                { key: 'poder', label: 'Poder', emoji: '💪', color: '#FF9F43' },
+                { key: 'velocidad', label: 'Velocidad', emoji: '⚡', color: '#FFE66D' },
+                { key: 'magia', label: 'Magia', emoji: '✨', color: '#9B59B6' }
+            ];
+
+            const total = stats.vida + stats.poder + stats.velocidad + stats.magia;
+            const avg = total / statDefs.length;
+            const tier = computeTier(avg);
+
+            const container = document.getElementById('resStats');
+            container.innerHTML = statDefs.map(def => `
+                <div class="stat-row">
+                    <span class="stat-label">${def.emoji} ${def.label}</span>
+                    <div class="stat-bar-container">
+                        <div class="stat-bar-fill" id="statBar-${def.key}" style="background:${def.color};"></div>
+                    </div>
+                    <span class="stat-value">${stats[def.key]}</span>
+                </div>
+            `).join('') + `
+                <div class="stat-total-row">
+                    <span class="stat-total-label">🏆 Total</span>
+                    <span class="tier-badge">${tier.emoji} ${tier.label}</span>
+                    <span class="stat-total-value">${total} / 400</span>
+                </div>
+            `;
+
+            // Se anima el ancho después de insertar en el DOM en 0%, para que la barra "crezca"
+            requestAnimationFrame(() => {
+                statDefs.forEach(def => {
+                    const bar = document.getElementById(`statBar-${def.key}`);
+                    if (bar) bar.style.width = `${stats[def.key]}%`;
+                });
+            });
+        }
+
         function generateResultData() {
             const safeName = userChoices.name || 'Mascota';
             document.getElementById('resName').textContent = safeName;
-            
-            const badgesHTML = `
-                <span class="badge">${userChoices.animal?.icon || ''} ${userChoices.animal?.label || ''}</span>
-                <span class="badge">${userChoices.superpower?.icon || ''} ${userChoices.superpower?.label || ''}</span>
-                <span class="badge">${userChoices.habitat?.icon || ''} ${userChoices.habitat?.label || ''}</span>
-                <span class="badge">${userChoices.personality?.icon || ''} ${userChoices.personality?.label || ''}</span>
-            `;
+
+            const badgeFields = ['animal', 'size', 'color', 'personality', 'superpower', 'habitat', 'food', 'hobby', 'emotion', 'accessory', 'background'];
+            const badgesHTML = badgeFields
+                .map(field => userChoices[field])
+                .filter(opt => opt && opt.icon)
+                .map(opt => `<span class="badge">${opt.icon} ${opt.label}</span>`)
+                .join('');
             document.getElementById('resBadges').innerHTML = badgesHTML;
+
+            renderStats();
 
             const story = `¡Hola! Te presento a <strong>${safeName}</strong>, un ${userChoices.animal?.label.toLowerCase() || 'amigo'} muy especial. Es conocido por ser increíblemente <strong>${userChoices.personality?.label.toLowerCase() || 'genial'}</strong> y le encanta usar su superpoder de <strong>${userChoices.superpower?.label.toLowerCase() || 'magia'}</strong>. Vive feliz en su <strong>${userChoices.habitat?.label.toLowerCase() || 'hogar'}</strong>, donde pasa sus días disfrutando de <strong>${userChoices.hobby?.label.toLowerCase() || 'jugar'}</strong> y comiendo <strong>${userChoices.food?.label.toLowerCase() || 'cosas ricas'}</strong>. ¡Siempre transmite una energía muy <strong>${userChoices.emotion?.label.toLowerCase() || 'bonita'}</strong>!`;
             
@@ -595,6 +803,104 @@
 
         let scene, camera, renderer, petGroup;
         let animationFrameId;
+        let decorativeSprites = [];
+
+        // Convierte cualquier emoji en una textura/sprite de Three.js, para poder usar
+        // TODOS los elementos visuales elegidos (hábitat, superpoder, comida, pasatiempo,
+        // emoción) directamente dentro de la escena 3D y, por lo tanto, en la imagen descargada.
+        function createEmojiSprite(emoji, size = 0.6) {
+            const res = 128;
+            const canvasEl = document.createElement('canvas');
+            canvasEl.width = res;
+            canvasEl.height = res;
+            const ctx = canvasEl.getContext('2d');
+            ctx.font = `${res * 0.75}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, res / 2, res / 2 + res * 0.05);
+
+            const texture = new THREE.CanvasTexture(canvasEl);
+            texture.needsUpdate = true;
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(size, size, size);
+            return sprite;
+        }
+
+        // Agrega al escenario los emojis de hábitat, superpoder, comida, pasatiempo y emoción
+        // que antes solo aparecían como texto, para que la mascota se vea única y comparable.
+        function addThematicDecorations(scale) {
+            decorativeSprites = [];
+
+            // Emoción: flota justo sobre la cabeza
+            const emotionEmoji = userChoices.emotion?.icon;
+            if (emotionEmoji) {
+                const sprite = createEmojiSprite(emotionEmoji, 0.55);
+                sprite.position.set(0, 2.3, 0);
+                sprite.userData.baseY = 2.3;
+                sprite.userData.floatSeed = 0;
+                petGroup.add(sprite);
+                decorativeSprites.push(sprite);
+            }
+
+            // Superpoder: orbita alrededor de la mascota
+            const powerEmojiMap = { volar: '✨', fuego: '🔥', hielo: '❄️', velocidad: '⚡', animales: '🌿', arcoiris: '🌈', invisibilidad: '⭐' };
+            const powerEmoji = powerEmojiMap[userChoices.superpower?.val];
+            if (powerEmoji) {
+                for (let i = 0; i < 3; i++) {
+                    const sprite = createEmojiSprite(powerEmoji, 0.35);
+                    sprite.userData.orbit = true;
+                    sprite.userData.orbitRadius = 1.3;
+                    sprite.userData.orbitSpeed = 0.6 + i * 0.15;
+                    sprite.userData.orbitOffset = (i / 3) * Math.PI * 2;
+                    sprite.userData.orbitY = 0.9;
+                    petGroup.add(sprite);
+                    decorativeSprites.push(sprite);
+                }
+            }
+
+            // Comida favorita: flota a un costado
+            const foodEmoji = userChoices.food?.icon;
+            if (foodEmoji) {
+                const sprite = createEmojiSprite(foodEmoji, 0.5);
+                sprite.position.set(1.1, 0.1, 0.6);
+                sprite.userData.baseY = 0.1;
+                sprite.userData.floatSeed = 1.5;
+                petGroup.add(sprite);
+                decorativeSprites.push(sprite);
+            }
+
+            // Pasatiempo favorito: flota al otro costado
+            const hobbyEmoji = userChoices.hobby?.icon;
+            if (hobbyEmoji) {
+                const sprite = createEmojiSprite(hobbyEmoji, 0.5);
+                sprite.position.set(-1.1, 0.1, 0.6);
+                sprite.userData.baseY = 0.1;
+                sprite.userData.floatSeed = 3;
+                petGroup.add(sprite);
+                decorativeSprites.push(sprite);
+            }
+
+            // Hábitat: decoraciones fijas alrededor del suelo (no giran con la mascota)
+            const habitatEmojiMap = {
+                bosque: ['🌳', '🌲', '🍃'],
+                castillo: ['🏰', '🚩'],
+                espacio: ['🪐', '🌟', '☄️'],
+                mar: ['🌊', '🐚', '🐠'],
+                nubes: ['☁️', '☁️'],
+                volcan: ['🌋', '🔥']
+            };
+            const habitatEmojis = habitatEmojiMap[userChoices.habitat?.val] || [];
+            const groundRadius = 2.3;
+            const groundY = -1.5 * scale + 0.15;
+            habitatEmojis.forEach((emoji, i) => {
+                const angle = (i / habitatEmojis.length) * Math.PI * 2 + 0.4;
+                const sprite = createEmojiSprite(emoji, 0.55);
+                sprite.position.set(Math.cos(angle) * groundRadius, groundY, Math.sin(angle) * groundRadius);
+                scene.add(sprite);
+                decorativeSprites.push(sprite);
+            });
+        }
 
         function initThreeJS() {
             const canvas = document.getElementById('petCanvas');
@@ -657,6 +963,8 @@
 
             scene.add(petGroup);
 
+            addThematicDecorations(scale);
+
             const groundGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
             const groundMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
@@ -693,6 +1001,19 @@
                 
                 petGroup.rotation.y += (targetRotationY - petGroup.rotation.y) * 0.05;
                 petGroup.rotation.x += (targetRotationX - petGroup.rotation.x) * 0.05;
+
+                decorativeSprites.forEach(sprite => {
+                    if (sprite.userData.orbit) {
+                        const angle = time * sprite.userData.orbitSpeed + sprite.userData.orbitOffset;
+                        sprite.position.set(
+                            Math.cos(angle) * sprite.userData.orbitRadius,
+                            sprite.userData.orbitY + Math.sin(time * 2 + sprite.userData.orbitOffset) * 0.15,
+                            Math.sin(angle) * sprite.userData.orbitRadius
+                        );
+                    } else if (sprite.userData.baseY !== undefined) {
+                        sprite.position.y = sprite.userData.baseY + Math.sin(time * 1.5 + sprite.userData.floatSeed) * 0.15;
+                    }
+                });
 
                 renderer.render(scene, camera);
             }
