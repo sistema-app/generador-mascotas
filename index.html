@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mascota Virtual IA</title>
+    <!-- Fuentes divertidas y amigables -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Librerías Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --secondary: #4ECDC4;
+            --accent: #FFE66D;
+            --bg-color: #F7FFF7;
+            --text-dark: #2C3E50;
+            --text-light: #FFFFFF;
+            --card-bg: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            padding: 20px 5%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 10;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            background-color: var(--text-light);
+            border-radius: 15px;
+            padding: 5px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-text { margin-left: 20px; }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--primary);
+            font-weight: 900;
+            text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            color: var(--secondary);
+            font-weight: 700;
+        }
+
+        main {
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            min-height: calc(100vh - 100px);
+        }
+
+        .view {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .view.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 15px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 10px;
+        }
+
+        .question-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .question-title {
+            font-size: 2.2rem;
+            color: var(--text-dark);
+            margin-bottom: 30px;
+            font-weight: 800;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px 25px;
+            font-size: 1.5rem;
+            border: 4px solid var(--secondary);
+            border-radius: 20px;
+            outline: none;
+            text-align: center;
+            color: var(--text-dark);
+            font-weight: bold;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 3px solid transparent;
+            border-radius: 20px;
+            padding: 20px 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .option-btn span.emoji {
+            font-size: 3rem;
+            transition: transform 0.2s;
+        }
+
+        .option-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+            border-color: var(--accent);
+        }
+
+        .option-btn:hover span.emoji { transform: scale(1.2); }
+
+        .option-btn.selected {
+            border-color: var(--primary);
+            background: #fff0f0;
+            transform: translateY(2px);
+            box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #d9534f;
+            transition: all 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            transform: translateY(8px);
+            box-shadow: 0 0 0 #d9534f;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            box-shadow: 0 8px 0 #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            box-shadow: 0 8px 0 #319e96;
+        }
+
+        .btn-secondary:active { box-shadow: 0 0 0 #319e96; }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .loading-screen {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .spinner {
+            font-size: 5rem;
+            animation: spin 2s linear infinite;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .result-container {
+                flex-direction: row;
+                align-items: stretch;
+            }
+        }
+
+        .canvas-container {
+            flex: 1;
+            width: 100%;
+            height: 400px;
+            background: var(--card-bg);
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            position: relative;
+            border: 5px solid white;
+        }
+
+        #petCanvas {
+            width: 100%;
+            height: 100%;
+            outline: none;
+            cursor: grab;
+            display: block; /* Asegura que el canvas no se colapse */
+        }
+
+        #petCanvas:active { cursor: grabbing; }
+
+        .pet-card {
+            flex: 1;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .pet-name {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+
+        .pet-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: var(--accent);
+            color: var(--text-dark);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .pet-story {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: #555;
+            background: rgba(255,255,255,0.6);
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid var(--secondary);
+            margin-bottom: 25px;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" style="display:flex; align-items:center; justify-content:center; font-size: 1.5rem; font-weight: 900; color: #4ECDC4;">plx</div>
+        <div class="header-text">
+            <h1>Mascota Virtual</h1>
+            <h2>Generación de mascota con IA</h2>
+        </div>
+    </header>
+
+    <main>
+        <!-- WIZARD -->
+        <div id="wizard" class="view active">
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="question-card">
+                <h3 id="questionTitle" class="question-title">¿Cómo se llama tu mascota?</h3>
+                <div id="inputContainer"></div>
+                <div class="navigation-buttons">
+                    <button class="btn btn-secondary" id="btnPrev" style="visibility: hidden;">◀ Atrás</button>
+                    <button class="btn" id="btnNext">Siguiente ▶</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loading" class="view">
+            <div class="loading-screen">
+                <span class="spinner">✨</span>
+                <h2 style="font-size: 2rem; color: var(--primary);">¡Creando magia!</h2>
+                <p style="font-size: 1.2rem; margin-top: 10px;">Conectando polígonos, mezclando colores y añadiendo superpoderes...</p>
+            </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="result" class="view">
+            <div class="result-container">
+                <div class="canvas-container">
+                    <canvas id="petCanvas"></canvas>
+                </div>
+                
+                <div class="pet-card">
+                    <h2 class="pet-name" id="resName">Nombre</h2>
+                    <div class="pet-badges" id="resBadges"></div>
+                    <div class="pet-story" id="resStory"></div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn" onclick="downloadImage()">📸 Descargar Foto</button>
+                        <button class="btn btn-secondary" onclick="restart()">✨ Crear otra mascota</button>
+                        <button class="btn btn-secondary" style="background:#a55eea; box-shadow: 0 8px 0 #7d3c98;" onclick="generateSurprise()">🎲 Generar sorpresa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const questions = [
+            { id: 'name', type: 'text', question: '¿Cómo se llama tu mascota?', placeholder: 'Escribe un nombre mágico...' },
+            { id: 'animal', type: 'select', question: '¿Qué animal te gustaría que fuera?', options: [
+                { val: 'dog', label: 'Perro', icon: '🐶' }, { val: 'cat', label: 'Gato', icon: '🐱' },
+                { val: 'rabbit', label: 'Conejo', icon: '🐰' }, { val: 'panda', label: 'Panda', icon: '🐼' },
+                { val: 'fox', label: 'Zorro', icon: '🦊' }, { val: 'dragon', label: 'Dragón', icon: '🐲' },
+                { val: 'unicorn', label: 'Unicornio', icon: '🦄' }, { val: 'robot', label: 'Robot', icon: '🤖' },
+                { val: 'surprise', label: 'Sorpresa', icon: '🎲' }
+            ]},
+            { id: 'size', type: 'select', question: '¿Qué tan grande será?', options: [
+                { val: 'small', label: 'Pequeñita', icon: '🐭' }, { val: 'medium', label: 'Mediana', icon: '🐶' },
+                { val: 'giant', label: 'Gigante', icon: '🐘' }
+            ]},
+            { id: 'color', type: 'select', question: '¿Cuál será su color favorito?', options: [
+                { val: '#FF4757', label: 'Rojo', icon: '❤️' }, { val: '#1E90FF', label: 'Azul', icon: '💙' },
+                { val: '#2ED573', label: 'Verde', icon: '💚' }, { val: '#ECCC68', label: 'Amarillo', icon: '💛' },
+                { val: '#9B59B6', label: 'Morado', icon: '💜' }, { val: '#FF7F50', label: 'Rosa', icon: '🩷' },
+                { val: 'rainbow', label: 'Arcoíris', icon: '🌈' }
+            ]},
+            { id: 'personality', type: 'select', question: '¿Cómo será su personalidad?', options: [
+                { val: 'amigable', label: 'Amigable', icon: '😊' }, { val: 'traviesa', label: 'Traviesa', icon: '🤪' },
+                { val: 'valiente', label: 'Valiente', icon: '😎' }, { val: 'inteligente', label: 'Inteligente', icon: '🤓' },
+                { val: 'divertida', label: 'Muy divertida', icon: '😂' }, { val: 'cariñosa', label: 'Cariñosa', icon: '🥰' }
+            ]},
+            { id: 'superpower', type: 'select', question: '¿Qué superpoder tendrá?', options: [
+                { val: 'volar', label: 'Volar', icon: '✨' }, { val: 'fuego', label: 'Lanzar fuego', icon: '🔥' },
+                { val: 'hielo', label: 'Congelar cosas', icon: '❄️' }, { val: 'velocidad', label: 'Súper velocidad', icon: '⚡' },
+                { val: 'animales', label: 'Hablar con animales', icon: '🌿' }, { val: 'arcoiris', label: 'Crear arcoíris', icon: '🌈' },
+                { val: 'invisibilidad', label: 'Invisibilidad', icon: '⭐' }
+            ]},
+            { id: 'habitat', type: 'select', question: '¿Dónde vive?', options: [
+                { val: 'bosque', label: 'Bosque', icon: '🌳' }, { val: 'castillo', label: 'Castillo', icon: '🏰' },
+                { val: 'espacio', label: 'Espacio', icon: '🚀' }, { val: 'mar', label: 'Bajo el mar', icon: '🌊' },
+                { val: 'nubes', label: 'En las nubes', icon: '☁️' }, { val: 'volcan', label: 'Volcán mágico', icon: '🌋' }
+            ]},
+            { id: 'food', type: 'select', question: '¿Qué comida le encanta?', options: [
+                { val: 'pizza', label: 'Pizza', icon: '🍕' }, { val: 'manzanas', label: 'Manzanas', icon: '🍎' },
+                { val: 'helado', label: 'Helado', icon: '🍦' }, { val: 'galletas', label: 'Galletas', icon: '🍪' },
+                { val: 'zanahorias', label: 'Zanahorias', icon: '🥕' }, { val: 'estrellas', label: 'Estrellas mágicas', icon: '🌟' }
+            ]},
+            { id: 'hobby', type: 'select', question: '¿Cuál es su pasatiempo favorito?', options: [
+                { val: 'jugar', label: 'Jugar', icon: '⚽' }, { val: 'pintar', label: 'Pintar', icon: '🎨' },
+                { val: 'cantar', label: 'Cantar', icon: '🎵' }, { val: 'leer', label: 'Leer', icon: '📚' },
+                { val: 'bailar', label: 'Bailar', icon: '💃' }, { val: 'pasear', label: 'Pasear', icon: '🚴' }
+            ]},
+            { id: 'emotion', type: 'select', question: '¿Qué emoción quieres que transmita?', options: [
+                { val: 'feliz', label: 'Feliz', icon: '😄' }, { val: 'emocionado', label: 'Emocionado', icon: '🤩' },
+                { val: 'tranquilo', label: 'Tranquilo', icon: '😌' }, { val: 'tierno', label: 'Tierno', icon: '😍' },
+                { val: 'gracioso', label: 'Muy divertido', icon: '😁' }
+            ]},
+            { id: 'accessory', type: 'select', question: '¿Quieres agregar un accesorio?', options: [
+                { val: 'crown', label: 'Corona', icon: '👑' }, { val: 'hat', label: 'Sombrero', icon: '🎩' },
+                { val: 'cape', label: 'Capa', icon: '🦸' }, { val: 'glasses', label: 'Lentes', icon: '🕶️' },
+                { val: 'bow', label: 'Moño', icon: '🎀' }, { val: 'none', label: 'Ninguno', icon: '🦴' }
+            ]},
+            { id: 'background', type: 'select', question: '¿Cómo quieres el fondo?', options: [
+                { val: 'fantasy', label: 'Fantasía', icon: '🌈' }, { val: 'galaxy', label: 'Galaxia', icon: '🌌' },
+                { val: 'nature', label: 'Naturaleza', icon: '🌳' }, { val: 'beach', label: 'Playa', icon: '🏖️' },
+                { val: 'castle', label: 'Castillo', icon: '🏰' }, { val: 'party', label: 'Fiesta', icon: '🎉' }
+            ]}
+        ];
+
+        let currentStep = 0;
+        let userChoices = {};
+        
+        const titleEl = document.getElementById('questionTitle');
+        const inputContainer = document.getElementById('inputContainer');
+        const btnNext = document.getElementById('btnNext');
+        const btnPrev = document.getElementById('btnPrev');
+        const progressBar = document.getElementById('progressBar');
+
+        function renderStep() {
+            const q = questions[currentStep];
+            titleEl.textContent = q.question;
+            inputContainer.innerHTML = '';
+            
+            progressBar.style.width = `${(currentStep / (questions.length)) * 100}%`;
+            btnPrev.style.visibility = currentStep > 0 ? 'visible' : 'hidden';
+            
+            if (currentStep === questions.length - 1) {
+                btnNext.innerHTML = '✨ ¡Crear mi mascota mágica!';
+            } else {
+                btnNext.innerHTML = 'Siguiente ▶';
+            }
+
+            if (q.type === 'text') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = q.placeholder;
+                input.value = userChoices[q.id] || '';
+                input.id = 'textInput';
+                input.oninput = (e) => checkValid();
+                inputContainer.appendChild(input);
+                setTimeout(() => input.focus(), 100);
+            } else if (q.type === 'select') {
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                
+                q.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = `option-btn ${userChoices[q.id]?.val === opt.val ? 'selected' : ''}`;
+                    btn.innerHTML = `<span class="emoji">${opt.icon}</span><span>${opt.label}</span>`;
+                    btn.onclick = () => {
+                        userChoices[q.id] = opt;
+                        renderStep();
+                        if (currentStep < questions.length - 1) setTimeout(nextStep, 300);
+                        else checkValid();
+                    };
+                    grid.appendChild(btn);
+                });
+                inputContainer.appendChild(grid);
+            }
+            checkValid();
+        }
+
+        function checkValid() {
+            const q = questions[currentStep];
+            if (q.type === 'text') {
+                const val = document.getElementById('textInput').value.trim();
+                userChoices[q.id] = val;
+                btnNext.disabled = val.length === 0;
+            } else {
+                btnNext.disabled = !userChoices[q.id];
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < questions.length - 1) {
+                currentStep++;
+                renderStep();
+            } else {
+                finishWizard();
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 0) {
+                currentStep--;
+                renderStep();
+            }
+        }
+
+        btnNext.addEventListener('click', nextStep);
+        btnPrev.addEventListener('click', prevStep);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !btnNext.disabled && document.getElementById('wizard').classList.contains('active')) {
+                nextStep();
+            }
+        });
+
+        function showView(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        function finishWizard() {
+            showView('loading');
+            
+            const end = Date.now() + 2.5 * 1000;
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#9B59B6'];
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+
+            setTimeout(() => {
+                generateResultData();
+                showView('result'); 
+                
+                // SOLUCIÓN CLAVE 2: Retraso de 100ms para asegurar que el DOM dibuja el contenedor 
+                // antes de que Three.js intente medirlo, evitando un lienzo de 0x0 píxeles.
+                setTimeout(() => {
+                    initThreeJS();
+                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                }, 100);
+
+            }, 3000);
+        }
+
+        function generateResultData() {
+            const safeName = userChoices.name || 'Mascota';
+            document.getElementById('resName').textContent = safeName;
+            
+            const badgesHTML = `
+                <span class="badge">${userChoices.animal?.icon || ''} ${userChoices.animal?.label || ''}</span>
+                <span class="badge">${userChoices.superpower?.icon || ''} ${userChoices.superpower?.label || ''}</span>
+                <span class="badge">${userChoices.habitat?.icon || ''} ${userChoices.habitat?.label || ''}</span>
+                <span class="badge">${userChoices.personality?.icon || ''} ${userChoices.personality?.label || ''}</span>
+            `;
+            document.getElementById('resBadges').innerHTML = badgesHTML;
+
+            const story = `¡Hola! Te presento a <strong>${safeName}</strong>, un ${userChoices.animal?.label.toLowerCase() || 'amigo'} muy especial. Es conocido por ser increíblemente <strong>${userChoices.personality?.label.toLowerCase() || 'genial'}</strong> y le encanta usar su superpoder de <strong>${userChoices.superpower?.label.toLowerCase() || 'magia'}</strong>. Vive feliz en su <strong>${userChoices.habitat?.label.toLowerCase() || 'hogar'}</strong>, donde pasa sus días disfrutando de <strong>${userChoices.hobby?.label.toLowerCase() || 'jugar'}</strong> y comiendo <strong>${userChoices.food?.label.toLowerCase() || 'cosas ricas'}</strong>. ¡Siempre transmite una energía muy <strong>${userChoices.emotion?.label.toLowerCase() || 'bonita'}</strong>!`;
+            
+            document.getElementById('resStory').innerHTML = story;
+        }
+
+        let scene, camera, renderer, petGroup;
+        let animationFrameId;
+
+        function initThreeJS() {
+            const canvas = document.getElementById('petCanvas');
+            const container = canvas.parentElement;
+            
+            // Protección extrema: si el contenedor falla en dar sus medidas, forzamos 400x400
+            const rect = container.getBoundingClientRect();
+            let w = rect.width || container.clientWidth || 400;
+            let h = rect.height || container.clientHeight || 400;
+            
+            if (w < 10) w = 400;
+            if (h < 10) h = 400;
+
+            if (renderer) {
+                renderer.dispose();
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            scene = new THREE.Scene();
+            
+            let bgColor = 0x87CEEB;
+            const bgChoice = userChoices.background?.val || 'fantasy';
+            if (bgChoice === 'galaxy') bgColor = 0x0B0C10;
+            if (bgChoice === 'nature') bgColor = 0xA8E6CF;
+            if (bgChoice === 'beach') bgColor = 0xFFD3B6;
+            if (bgChoice === 'castle') bgColor = 0xDCDDE1;
+            if (bgChoice === 'party') bgColor = 0xFF9A9E;
+            scene.background = new THREE.Color(bgColor);
+
+            camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+            camera.position.set(0, 2, 8);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const fillLight = new THREE.PointLight(0xffffff, 0.3);
+            fillLight.position.set(-5, 3, -5);
+            scene.add(fillLight);
+
+            petGroup = new THREE.Group();
+            buildPetMesh();
+            
+            const sizeVal = userChoices.size?.val || 'medium';
+            let scale = 1.0;
+            if (sizeVal === 'small') scale = 0.6;
+            if (sizeVal === 'giant') scale = 1.5;
+            petGroup.scale.set(scale, scale, scale);
+
+            scene.add(petGroup);
+
+            const groundGeo = new THREE.CylinderGeometry(3, 3, 0.2, 32);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.position.y = -1.5 * scale;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            let mouseX = 0;
+            let mouseY = 0;
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - windowHalfX) / windowHalfX;
+                mouseY = (event.clientY - windowHalfY) / windowHalfY;
+            });
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            function onWindowResize() {
+                if(!container || container.clientWidth === 0) return;
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                const time = Date.now() * 0.002;
+                petGroup.position.y = Math.sin(time) * 0.1;
+                
+                const targetRotationY = mouseX * 0.8;
+                const targetRotationX = mouseY * 0.5;
+                
+                petGroup.rotation.y += (targetRotationY - petGroup.rotation.y) * 0.05;
+                petGroup.rotation.x += (targetRotationX - petGroup.rotation.x) * 0.05;
+
+                renderer.render(scene, camera);
+            }
+            
+            // Forzar primer renderizado
+            renderer.render(scene, camera);
+            animate();
+        }
+
+        function buildPetMesh() {
+            let mainColorHex = userChoices.color?.val || '#FF4757';
+            if (mainColorHex === 'rainbow') mainColorHex = 0xffa500;
+            
+            let animalType = userChoices.animal?.val || 'dog';
+            if (animalType === 'surprise') {
+                const types = ['dog','cat','rabbit','panda','fox','dragon','unicorn','robot'];
+                animalType = types[Math.floor(Math.random() * types.length)];
+            }
+
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: new THREE.Color(mainColorHex),
+                roughness: 0.4,
+                metalness: animalType === 'robot' ? 0.8 : 0.1
+            });
+            const blackMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+
+            const headGeo = animalType === 'robot' ? new THREE.BoxGeometry(1.2, 1.2, 1.2) : new THREE.SphereGeometry(0.7, 32, 32);
+            const bodyGeo = animalType === 'robot' ? new THREE.BoxGeometry(1, 1.5, 0.8) : new THREE.SphereGeometry(0.5, 32, 32);
+
+            const head = new THREE.Mesh(headGeo, bodyMat);
+            head.position.y = 1.0;
+            head.castShadow = true;
+            petGroup.add(head);
+
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0;
+            if (animalType !== 'robot') body.scale.y = 1.5;
+            body.castShadow = true;
+            petGroup.add(body);
+
+            const eyeGeo = animalType === 'robot' ? new THREE.BoxGeometry(0.2, 0.1, 0.1) : new THREE.SphereGeometry(0.08, 16, 16);
+            const eyeL = new THREE.Mesh(eyeGeo, blackMat);
+            eyeL.position.set(-0.25, 1.1, animalType === 'robot' ? 0.61 : 0.65);
+            const eyeR = eyeL.clone();
+            eyeR.position.set(0.25, 1.1, animalType === 'robot' ? 0.61 : 0.65);
+            petGroup.add(eyeL, eyeR);
+
+            if (animalType === 'cat' || animalType === 'fox') {
+                const earGeo = new THREE.ConeGeometry(0.25, 0.5, 16);
+                const earL = new THREE.Mesh(earGeo, bodyMat);
+                earL.position.set(-0.4, 1.5, 0);
+                earL.rotation.z = 0.2;
+                const earR = new THREE.Mesh(earGeo, bodyMat);
+                earR.position.set(0.4, 1.5, 0);
+                earR.rotation.z = -0.2;
+                petGroup.add(earL, earR);
+            } 
+            else if (animalType === 'rabbit') {
+                const earGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                const earL = new THREE.Mesh(earGeo, bodyMat);
+                earL.scale.y = 3;
+                earL.position.set(-0.3, 1.7, 0);
+                const earR = new THREE.Mesh(earGeo, bodyMat);
+                earR.scale.y = 3;
+                earR.position.set(0.3, 1.7, 0);
+                petGroup.add(earL, earR);
+            }
+            else if (animalType === 'dog') {
+                const earGeo = new THREE.BoxGeometry(0.2, 0.6, 0.4);
+                const earL = new THREE.Mesh(earGeo, bodyMat);
+                earL.position.set(-0.6, 1.0, 0);
+                earL.rotation.z = 0.4;
+                const earR = new THREE.Mesh(earGeo, bodyMat);
+                earR.position.set(0.6, 1.0, 0);
+                earR.rotation.z = -0.4;
+                petGroup.add(earL, earR);
+            }
+            else if (animalType === 'panda') {
+                const earGeo = new THREE.SphereGeometry(0.25, 16, 16);
+                const earL = new THREE.Mesh(earGeo, blackMat);
+                earL.position.set(-0.6, 1.4, 0);
+                const earR = new THREE.Mesh(earGeo, blackMat);
+                earR.position.set(0.6, 1.4, 0);
+                petGroup.add(earL, earR);
+                const patchGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                const patchL = new THREE.Mesh(patchGeo, blackMat);
+                patchL.position.set(-0.25, 1.1, 0.6);
+                const patchR = new THREE.Mesh(patchGeo, blackMat);
+                patchR.position.set(0.25, 1.1, 0.6);
+                petGroup.add(patchL, patchR);
+            }
+            else if (animalType === 'unicorn') {
+                const hornGeo = new THREE.ConeGeometry(0.1, 0.6, 16);
+                const hornMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.2 });
+                const horn = new THREE.Mesh(hornGeo, hornMat);
+                horn.position.set(0, 1.6, 0.4);
+                horn.rotation.x = 0.3;
+                petGroup.add(horn);
+            }
+            else if (animalType === 'dragon') {
+                const spikesGeo = new THREE.ConeGeometry(0.15, 0.4, 8);
+                for(let i=0; i<3; i++) {
+                    const spike = new THREE.Mesh(spikesGeo, new THREE.MeshStandardMaterial({color: 0xff5555}));
+                    spike.position.set(0, 1.3 - (i*0.5), -0.5);
+                    spike.rotation.x = -0.5;
+                    petGroup.add(spike);
+                }
+            }
+
+            const acc = userChoices.accessory?.val || 'none';
+            if (acc === 'crown') {
+                const crownGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.3, 8, 1, true);
+                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, side: THREE.DoubleSide });
+                const crown = new THREE.Mesh(crownGeo, crownMat);
+                crown.position.set(0, 1.8, 0);
+                petGroup.add(crown);
+            } else if (acc === 'hat') {
+                const brimGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.05, 32);
+                const topGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
+                const hatMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+                const brim = new THREE.Mesh(brimGeo, hatMat);
+                brim.position.set(0, 1.6, 0);
+                const top = new THREE.Mesh(topGeo, hatMat);
+                top.position.set(0, 1.85, 0);
+                petGroup.add(brim, top);
+            } else if (acc === 'glasses') {
+                const frameGeo = new THREE.TorusGeometry(0.15, 0.03, 16, 32);
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                const glassL = new THREE.Mesh(frameGeo, frameMat);
+                glassL.position.set(-0.25, 1.1, 0.7);
+                const glassR = new THREE.Mesh(frameGeo, frameMat);
+                glassR.position.set(0.25, 1.1, 0.7);
+                const bridge = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), frameMat);
+                bridge.position.set(0, 1.1, 0.7);
+                bridge.rotation.z = Math.PI / 2;
+                petGroup.add(glassL, glassR, bridge);
+            } else if (acc === 'cape') {
+                const capeGeo = new THREE.PlaneGeometry(1, 1.5);
+                const capeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, side: THREE.DoubleSide });
+                const cape = new THREE.Mesh(capeGeo, capeMat);
+                cape.position.set(0, 0.5, -0.6);
+                cape.rotation.x = -0.2;
+                petGroup.add(cape);
+            }
+        }
+
+        // --- ACCIÓN DESCARGAR CORREGIDA ---
+        function downloadImage() {
+            // Forzar a renderizar justo antes de capturar asegura que la imagen no salga vacía
+            if(renderer && scene && camera) renderer.render(scene, camera);
+            
+            const canvas = document.getElementById('petCanvas');
+            const link = document.createElement('a');
+            const petName = userChoices.name || 'Magica';
+            link.download = `Mi_Mascota_${petName}.png`;
+            link.href = canvas.toDataURL('image/png');
+            
+            // Requerido por algunos navegadores para habilitar la descarga correctamente
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            confetti({ particleCount: 50, spread: 30, origin: { y: 0.8 } });
+        }
+
+        function restart() {
+            currentStep = 0;
+            userChoices = {};
+            document.getElementById('progressBar').style.width = '0%';
+            renderStep();
+            showView('wizard');
+        }
+
+        function generateSurprise() {
+            userChoices.name = "Chispa " + Math.floor(Math.random() * 100);
+            questions.forEach(q => {
+                if(q.type === 'select') {
+                    const randomOpt = q.options[Math.floor(Math.random() * q.options.length)];
+                    userChoices[q.id] = randomOpt;
+                }
+            });
+            finishWizard();
+        }
+
+        renderStep();
+    </script>
+</body>
+</html>
